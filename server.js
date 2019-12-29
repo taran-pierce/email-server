@@ -8,9 +8,6 @@ const handle = app.getRequestHandler()
 // set up nodemailer and get creds
 const nodemailer = require("nodemailer")
 
-// get info for email
-// const c = require('./conf.js')
-
 async function main(name, email, message){
 
   // set up message
@@ -53,25 +50,19 @@ async function main(name, email, message){
 app.prepare().then(() => {
   const server = express()
 
-  // server.use(bodyParser.json())
-  // server.use(bodyParser.urlencoded({ extended: true }))
   server.use(bodyParser.json({ type: 'application/x-www-form-urlencoded' }))
 
   server.post('/send/mail', (req, res) => {
     // set vars for incoming POST
     const { name, email, message } = req.body
 
-    console.log('name: ', name)
-    console.log('email: ', email)
-    console.log('message: ', message)
-    console.log('req.body: ', req.body)
-    
-
     // send mail
     main(name, email, message).catch(console.error)
 
     // send success response
     res.send('success')
+
+    return handle(req, res)
   })
 
   server.get('*', (req, res) => {
