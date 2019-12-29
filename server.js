@@ -62,7 +62,7 @@ app.prepare().then(() => {
 
     // console.log('dev: ', dev)
     // console.log('req: ', req)
-    console.log('req: ', req.body)
+    console.log('req: ', req)
     
 
     // send mail
