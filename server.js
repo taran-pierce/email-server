@@ -5,7 +5,7 @@ const dev = process.env.NODE_ENV !== 'production'
 const app = next({ dev })
 const handle = app.getRequestHandler()
 
-// set up nodemailer and get creds
+// set up nodemailer
 const nodemailer = require("nodemailer")
 
 async function main(name, email, message){
