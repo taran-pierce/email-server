@@ -9,7 +9,7 @@ const handle = app.getRequestHandler()
 const nodemailer = require("nodemailer")
 
 // get info for email
-const c = require('./conf.js')
+// const c = require('./conf.js')
 
 async function main(name, email, message){
 
@@ -23,27 +23,27 @@ async function main(name, email, message){
 
   // create transporter
   let transporter = nodemailer.createTransport({
-    host: c.HOST,
+    host: process.env.host,
     // for gmail to work options must be set up on the account
     // that is being used to send the mail
     service: 'gmail',
     port: 465,
     secure: true,
     auth: {
-      user: c.USER,
-      pass: c.PASS
+      user: process.env.email,
+      pass: process.env.creds
     },
   });
 
   // send mail
   let info = await transporter.sendMail({
     from: `"${name}" <${email}>`,
-    to: c.USER, // list of receivers
+    to: process.env.email, // list of receivers
     subject: "Website Contact Form", // Subject line
     text: newMessage, // plain text body
     envelope: {
       from: `"${name}" <${email}>`,
-      to: c.USER,
+      to: process.env.email,
       replyTo: `"${name}" <${email}>`
     },
     messageId: `"${name}" <${email}>`,
