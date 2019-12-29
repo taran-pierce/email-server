@@ -1,4 +1,4 @@
-# caddo-email-server `1.0.0`
+# email-server `1.0.1`
 Simple email server for use on a contact form.
 
 ## Deploy
