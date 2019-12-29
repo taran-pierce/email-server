@@ -54,6 +54,7 @@ app.prepare().then(() => {
   const server = express()
 
   server.use(bodyParser.json())
+  server.use(bodyParser.urlencoded({ extended: true }))
 
   server.post('/send/mail', (req, res) => {
     // set vars for incoming POST
@@ -74,7 +75,7 @@ app.prepare().then(() => {
   server.get('*', (req, res) => {
     return handle(req, res)
   })
-  
+
   server.post('*', (req, res) => {
     return handle(req, res)
   })
