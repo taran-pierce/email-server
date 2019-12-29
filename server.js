@@ -64,6 +64,7 @@ app.prepare().then(() => {
     console.log('name: ', name)
     console.log('email: ', email)
     console.log('message: ', message)
+    console.log('req.body: ', req.body)
     
 
     // send mail
