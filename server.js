@@ -59,10 +59,10 @@ app.prepare().then(() => {
     // set vars for incoming POST
     const { name, email, message } = req.body
 
-    console.log('about to run main() for ', name)
-
-    console.log('process.env.email: ', process.env.email)
-    console.log('process.env.creds: ', process.env.creds)
+    console.log('dev: ', dev)
+    console.log('req: ', req)
+    console.log('res: ', res)
+    
 
     // send mail
     main(name, email, message).catch(console.error)
