@@ -54,7 +54,7 @@ app.prepare().then(() => {
   const server = express()
 
   // server.use(bodyParser.json())
-  server.use(bodyParser.urlencoded({ extended: true }))
+  // server.use(bodyParser.urlencoded({ extended: true }))
   server.use(bodyParser.json({ type: 'application/x-www-form-urlencoded' }))
 
   server.post('/send/mail', (req, res) => {
