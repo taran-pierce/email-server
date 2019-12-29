@@ -55,7 +55,7 @@ app.prepare().then(() => {
 
   // server.use(bodyParser.json())
   server.use(bodyParser.urlencoded({ extended: true }))
-  server.use(bodyParser.json({ type: 'multipart/form-data' }))
+  server.use(bodyParser.json({ type: 'application/x-www-form-urlencoded' }))
 
   server.post('/send/mail', (req, res) => {
     // set vars for incoming POST
