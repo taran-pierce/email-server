@@ -55,9 +55,14 @@ app.prepare().then(() => {
 
   server.use(bodyParser.json())
 
-  server.post('/helpers/form.php', (req, res) => {
+  server.post('/send/mail', (req, res) => {
     // set vars for incoming POST
     const { name, email, message } = req.body
+
+    console.log('about to run main() for ', name)
+
+    console.log('process.env.email: ', process.env.email)
+    console.log('process.env.creds: ', process.env.creds)
 
     // send mail
     main(name, email, message).catch(console.error)
