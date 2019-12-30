@@ -1,9 +1,9 @@
 const express = require('express')
-const next = require('next')
+// const next = require('next')
 const bodyParser = require('body-parser')
 const dev = process.env.NODE_ENV !== 'production'
-const app = next({ dev })
-const handle = app.getRequestHandler()
+// const app = next({ dev })
+const app = express()
 
 // set up nodemailer
 const nodemailer = require("nodemailer")
@@ -47,34 +47,20 @@ async function main(name, email, message){
   });
 }
 
-app.prepare().then(() => {
-  const server = express()
+app.use(bodyParser.json({ type: 'application/x-www-form-urlencoded' }))
 
-  server.use(bodyParser.json({ type: 'application/x-www-form-urlencoded' }))
+app.post('/send/mail', (req, res) => {
+  // set vars for incoming POST
+  const { name, email, message } = req.body
 
-  server.post('/send/mail', (req, res) => {
-    // set vars for incoming POST
-    const { name, email, message } = req.body
+  // send mail
+  main(name, email, message).catch(console.error)
 
-    // send mail
-    main(name, email, message).catch(console.error)
+  // send success response
+  res.send('success')
+})
 
-    // send success response
-    res.send('success')
-
-    return handle(req, res)
-  })
-
-  server.get('*', (req, res) => {
-    return handle(req, res)
-  })
-
-  server.post('*', (req, res) => {
-    return handle(req, res)
-  })
-
-  server.listen(process.env.PORT || 3000, (err) => {
-    if (err) throw err
-    console.log('> Read on http://localhost:3000')
-  })
+app.listen(process.env.PORT || 3000, (err) => {
+  if (err) throw err
+  console.log('> Read on http://localhost:3000')
 })
