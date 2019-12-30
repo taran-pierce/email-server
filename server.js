@@ -1,8 +1,6 @@
 const express = require('express')
-// const next = require('next')
 const bodyParser = require('body-parser')
 const dev = process.env.NODE_ENV !== 'production'
-// const app = next({ dev })
 const app = express()
 
 // set up nodemailer
@@ -62,5 +60,5 @@ app.post('/send/mail', (req, res) => {
 
 app.listen(process.env.PORT || 3000, (err) => {
   if (err) throw err
-  console.log('> Read on http://localhost:3000')
+  console.log(`Listening on ${process.env.PORT}`)
 })
