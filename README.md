@@ -1,4 +1,4 @@
-# email-server `1.0.4`
+# email-server
 Simple email server for use on a contact form.
 
 ## Deploy
