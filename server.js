@@ -55,8 +55,8 @@ async function main(name, email, message){
 
   // sending email using caddo email account
   let info = await transporter.sendMail({
-    from: `Taran <${supportEmail}>`,
-    to: `Taran <${supportEmail}>`, // list of receivers
+    from: `Info <${supportEmail}>`,
+    to: `Info <${supportEmail}>`, // list of receivers
     subject: "Website Contact Form", // Subject line
     text: newMessage, // plain text body
     messageId: `${name}`,
