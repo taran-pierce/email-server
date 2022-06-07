@@ -1,64 +1,89 @@
-const express = require('express')
-const bodyParser = require('body-parser')
-const dev = process.env.NODE_ENV !== 'production'
-const app = express()
+// get env variables
+const dotenv = require('dotenv');
+dotenv.config();
+
+const port = process.env.PORT || 3000;
+
+// set up express
+const express = require('express');
+const bodyParser = require('body-parser');
+
+const dev = process.env.NODE_ENV !== 'production';
+const app = express();
 
 // set up nodemailer
-const nodemailer = require("nodemailer")
+const nodemailer = require("nodemailer");
 
+// get required variables
+const {
+  email: supportEmail,
+  host,
+  creds,
+} = process.env;
+
+/**
+ * Use nodemailer to send an email with return information
+ * @async
+ * @param {string} name - Customer name
+ * @param {string} email - Customer email
+ * @param {string} message - Message to be emailed from the customer
+ */
 async function main(name, email, message){
-
-  // set up message
+  // set up message so we know who was viewing the form
+  // this will be forwarded to another email
   let newMessage = `${name} has been viewing your website and has some questions.\n
   Email them back at their email address: ${email}\n\n\n
   Message from ${name}:\n
   ________________________________________\n
   ${message}
-  `
+  `;
 
   // create transporter
   let transporter = nodemailer.createTransport({
-    host: process.env.host,
-    // for gmail to work options must be set up on the account
-    // that is being used to send the mail
-    service: 'gmail',
+    host: host,
+    service: 'smtp',
     port: 465,
     secure: true,
     auth: {
-      user: process.env.email,
-      pass: process.env.creds
+      user: supportEmail,
+      pass: creds,
     },
+    tls: {
+      rejectUnauthorized: false,
+    }
   });
 
-  // send mail
+  // sending email using caddo email account
   let info = await transporter.sendMail({
-    from: `"${name}" <${email}>`,
-    to: process.env.email, // list of receivers
+    from: `Taran <${supportEmail}>`,
+    to: `Taran <${supportEmail}>`, // list of receivers
     subject: "Website Contact Form", // Subject line
     text: newMessage, // plain text body
-    envelope: {
-      from: `"${name}" <${email}>`,
-      to: process.env.email,
-      replyTo: `"${name}" <${email}>`
-    },
-    messageId: `"${name}" <${email}>`,
+    messageId: `${name}`,
   });
-}
+} 
 
-app.use(bodyParser.json({ type: 'application/x-www-form-urlencoded' }))
+// data coming in from a form POST so parse it
+app.use(bodyParser.urlencoded({extended: true}));
 
+// route for sending the email requests
 app.post('/send/mail', (req, res) => {
   // set vars for incoming POST
-  const { name, email, message } = req.body
+  const { 
+    name, 
+    email, 
+    message,
+  } = req?.body;
 
-  // send mail
+  // use main to send email
   main(name, email, message).catch(console.error)
 
   // send success response
   res.send('success')
 })
 
-app.listen(process.env.PORT || 3000, (err) => {
+// start server
+app.listen(port, (err) => {
   if (err) throw err
-  console.log(`Listening on ${process.env.PORT}`)
-})
+  console.log(`Listening on ${port}`)
+});
