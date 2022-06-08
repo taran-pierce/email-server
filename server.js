@@ -17,12 +17,6 @@ const allowList = [
 
 var corsOptions = {
   origin: function (origin, callback) {
-
-    console.log({
-      origin,
-      allowList,
-    });
-
     if (allowList.indexOf(origin) !== -1) {
       callback(null, true)
     } else {
@@ -94,24 +88,25 @@ async function main(name, email, message){
 
 // data coming in from a form POST so parse it
 // app.use(bodyParser.urlencoded({extended: true}));
-app.use(bodyParser.json());
+// app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
-app.use(cors());
+// app.use(cors());
 
 // route for sending the email requests
-app.post('/send/mail', [cors(corsOptions), bodyParser.json()], (req, res, next) => {
+app.post('/send/mail', [cors(corsOptions)], (req, res, next) => {
   // set vars for incoming POST
   const { 
     name, 
     email, 
     message,
-  } = req?.body || {};
+  } = req?.body;
 
   console.log({
     name,
     email,
     message,
     req,
+    next,
   });
 
   // use main to send email
