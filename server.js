@@ -6,9 +6,13 @@ const cors = require('cors');
 
 const allowList = [
   'http://127.0.0.1/',
+  'http://127.0.0.1',
   'http://127.0.0.1:3000',
   'http://127.0.0.1:3000/',
+  'localhost',
+  'localhost/',
   'https://www.caddolakebayoutours.com',
+  'https://www.caddolakebayoutours.com/',
 ];
 
 var corsOptions = {
@@ -100,13 +104,25 @@ app.post('/send/mail', cors(corsOptions), (req, res) => {
     name, 
     email, 
     message,
-  } = req?.body || res?.body;
+  } = req?.body;
+
+  const {
+    name: test1,
+    email: test2,
+    message: test3,
+  } = res.body;
 
   console.log({
     name,
     email,
     message,
     req,
+  });
+
+  console.log({
+    test1,
+    test2,
+    test3,
     res,
   });
 
