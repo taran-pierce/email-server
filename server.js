@@ -2,6 +2,8 @@
 const dotenv = require('dotenv');
 dotenv.config();
 
+const cors = require('cors');
+
 const port = process.env.PORT || 3000;
 
 // set up express
@@ -65,6 +67,8 @@ async function main(name, email, message){
 
 // data coming in from a form POST so parse it
 app.use(bodyParser.urlencoded({extended: true}));
+
+app.use(cors());
 
 // route for sending the email requests
 app.post('/send/mail', (req, res) => {
