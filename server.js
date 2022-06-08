@@ -102,6 +102,14 @@ app.post('/send/mail', cors(corsOptions), (req, res) => {
     message,
   } = req?.body;
 
+  console.log({
+    name,
+    email,
+    message,
+    req,
+    res,
+  });
+
   // use main to send email
   main(name, email, message).catch(console.error)
 
