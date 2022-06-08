@@ -6,6 +6,7 @@ const cors = require('cors');
 
 const allowList = [
   'http://127.0.0.1/',
+  'http://127.0.0.1:3000/',
   'https://www.caddolakebayoutours.com',
 ];
 
