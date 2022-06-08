@@ -22,8 +22,13 @@ var corsOptions = {
     } else {
       callback(new Error('Not allowed by CORS'))
     }
-  }
-}
+  },
+  methods: 'POST',
+  allowedHeaders: [
+    'Accept',
+    'Content-Type',
+  ]
+};
 
 const port = process.env.PORT || 3000;
 
