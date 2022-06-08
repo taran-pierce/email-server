@@ -94,12 +94,12 @@ async function main(name, email, message){
 
 // data coming in from a form POST so parse it
 // app.use(bodyParser.urlencoded({extended: true}));
-app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
+app.use(cors());
 
 // route for sending the email requests
-app.post('/send/mail', cors(corsOptions), (req, res, next) => {
+app.post('/send/mail', [cors(corsOptions), bodyParser.json()], (req, res, next) => {
   // set vars for incoming POST
   const { 
     name, 
@@ -107,27 +107,11 @@ app.post('/send/mail', cors(corsOptions), (req, res, next) => {
     message,
   } = req?.body || {};
 
-  const test5 = req?.res?.body;
-
-  const {
-    name: test1,
-    email: test2,
-    message: test3,
-  } = res?.body || {};
-
   console.log({
     name,
     email,
     message,
     req,
-  });
-
-  console.log({
-    test1,
-    test2,
-    test3,
-    test5,
-    res,
   });
 
   // use main to send email
