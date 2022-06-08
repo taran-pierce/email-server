@@ -100,7 +100,7 @@ app.post('/send/mail', cors(corsOptions), (req, res) => {
     name, 
     email, 
     message,
-  } = req?.body;
+  } = req?.body || res?.body;
 
   console.log({
     name,
