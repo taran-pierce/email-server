@@ -101,11 +101,15 @@ app.use(bodyParser.urlencoded({extended: true}));
 // route for sending the email requests
 app.post('/send/mail', [cors(corsOptions)], (req, res, next) => {
   // set vars for incoming POST
-  const { 
-    name, 
-    email, 
-    message,
-  } = req?.body;
+  // const { 
+  //   name, 
+  //   email, 
+  //   message,
+  // } = req?.body;
+
+  const name = req?.body?.name;
+  const email = req?.body?.email;
+  const message = req?.body?.message;
 
   console.log({
     name,
