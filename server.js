@@ -4,6 +4,27 @@ dotenv.config();
 
 const cors = require('cors');
 
+const allowList = [
+  'http://127.0.0.1/',
+  'https://www.caddolakebayoutours.com',
+];
+
+var corsOptions = {
+  origin: function (origin, callback) {
+
+    console.log({
+      origin,
+      allowList,
+    });
+
+    if (allowList.indexOf(origin) !== -1) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  }
+}
+
 const port = process.env.PORT || 3000;
 
 // set up express
@@ -71,7 +92,7 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(cors());
 
 // route for sending the email requests
-app.post('/send/mail', (req, res) => {
+app.post('/send/mail', cors(corsOptions), (req, res) => {
   // set vars for incoming POST
   const { 
     name, 
