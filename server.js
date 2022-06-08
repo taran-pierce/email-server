@@ -107,6 +107,8 @@ app.post('/send/mail', [cors(corsOptions)], (req, res, next) => {
   //   message,
   // } = req?.body;
 
+  console.log('what type: ', typeof req.body);
+
   const name = req?.body?.name;
   const email = req?.body?.email;
   const message = req?.body?.message;
