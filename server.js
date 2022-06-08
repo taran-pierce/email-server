@@ -104,13 +104,13 @@ app.post('/send/mail', cors(corsOptions), (req, res) => {
     name, 
     email, 
     message,
-  } = req?.body;
+  } = req?.body || {};
 
   const {
     name: test1,
     email: test2,
     message: test3,
-  } = res?.body;
+  } = res?.body || {};
 
   console.log({
     name,
