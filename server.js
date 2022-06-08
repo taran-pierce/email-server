@@ -106,6 +106,8 @@ app.post('/send/mail', cors(corsOptions), (req, res) => {
     message,
   } = req?.body || {};
 
+  const test5 = req?.res?.body;
+
   const {
     name: test1,
     email: test2,
@@ -123,6 +125,7 @@ app.post('/send/mail', cors(corsOptions), (req, res) => {
     test1,
     test2,
     test3,
+    test5,
     res,
   });
 
