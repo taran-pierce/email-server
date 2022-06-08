@@ -107,18 +107,21 @@ app.post('/send/mail', [cors(corsOptions)], (req, res, next) => {
   //   message,
   // } = req?.body;
 
-  console.log('what type: ', typeof req.body);
+  const reqBody = req?.body;
 
-  const name = req?.body?.name;
-  const email = req?.body?.email;
-  const message = req?.body?.message;
+  console.log('what type: ', typeof reqBody);
+
+  const name = reqBody.name;
+  const email = reqBody.email;
+  const message = reqBody.message;
 
   console.log({
     name,
     email,
     message,
-    req,
-    next,
+    reqBody,
+    // req,
+    // next,
   });
 
   // use main to send email
