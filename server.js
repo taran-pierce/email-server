@@ -2,28 +2,33 @@
 const dotenv = require('dotenv');
 dotenv.config();
 
+const dev = process.env.NODE_ENV !== 'production';
+
 const cors = require('cors');
 
 const allowList = [
+  'https://www.caddolakebayoutours.com',
+  'https://www.caddolakebayoutours.com/',
+];
+
+dev && allowList.push(
   'http://127.0.0.1/',
   'http://127.0.0.1',
   'http://127.0.0.1:3000',
   'http://127.0.0.1:3000/',
   'localhost',
   'localhost/',
-  'https://www.caddolakebayoutours.com',
-  'https://www.caddolakebayoutours.com/',
-];
+  'http://localhost:3000',
+);
 
 var corsOptions = {
-  // origin: function (origin, callback) {
-  //   if (allowList.indexOf(origin) !== -1) {
-  //     callback(null, true)
-  //   } else {
-  //     callback(new Error('Not allowed by CORS'))
-  //   }
-  // },
-  origin: new URL('http://127.0.0.1:3000'),
+  origin: function (origin, callback) {
+    if (allowList.indexOf(origin) !== -1) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
   methods: 'POST',
   allowedHeaders: [
     'Accept',
@@ -37,7 +42,6 @@ const port = process.env.PORT || 3000;
 const express = require('express');
 const bodyParser = require('body-parser');
 
-const dev = process.env.NODE_ENV !== 'production';
 const app = express();
 
 // set up nodemailer
@@ -93,46 +97,28 @@ async function main(name, email, message){
 } 
 
 // data coming in from a form POST so parse it
-// app.use(bodyParser.urlencoded({extended: true}));
-// app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
-// app.use(cors());
 
 // route for sending the email requests
 app.post('/send/mail', [cors(corsOptions)], (req, res, next) => {
   // set vars for incoming POST
-  // const { 
-  //   name, 
-  //   email, 
-  //   message,
-  // } = req?.body;
+  const reqBody = JSON.parse(Object.keys(req.body));
 
-  const reqBody = req?.body;
-
-  console.log('what type: ', typeof reqBody);
-
-  const name = reqBody.name;
-  const email = reqBody.email;
-  const message = reqBody.message;
-
-  console.log({
+  const {
     name,
     email,
     message,
-    reqBody,
-    // req,
-    // next,
-  });
+  } = reqBody;
 
   // use main to send email
-  main(name, email, message).catch(console.error)
+  main(name, email, message).catch(console.error);
 
   // send success response
-  res.send('success')
+  res.send('success');
 })
 
 // start server
 app.listen(port, (err) => {
   if (err) throw err
-  console.log(`Listening on ${port}`)
+  console.log(`Listening on ${port}`);
 });
