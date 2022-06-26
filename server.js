@@ -3,16 +3,17 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const dev = process.env.NODE_ENV !== 'production';
-
 const cors = require('cors');
-
 const allowList = [
   'https://www.caddolakebayoutours.com',
   'https://www.caddolakebayoutours.com/',
   'https://dev.caddolakebayoutours.com/',
   'https://dev.caddolakebayoutours.com',
+  'https://caddolakebayoutours.com/',
+  'https://caddolakebayoutours.com',
 ];
 
+// add to allowList
 dev && allowList.push(
   'http://127.0.0.1/',
   'http://127.0.0.1',
@@ -21,6 +22,7 @@ dev && allowList.push(
   'localhost',
   'localhost/',
   'http://localhost:3000',
+  'http://localhost:3000/',
 );
 
 var corsOptions = {

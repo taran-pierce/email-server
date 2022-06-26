@@ -1,5 +1,8 @@
 # Updates for Email Server
 
+## 2.0.12
+- Minor updates
+
 ## 2.0.0
 - Leverage custom email account instead of Gmail
 - version up packages for security
