@@ -9,6 +9,8 @@ const cors = require('cors');
 const allowList = [
   'https://www.caddolakebayoutours.com',
   'https://www.caddolakebayoutours.com/',
+  'https://dev.caddolakebayoutours.com/',
+  'https://dev.caddolakebayoutours.com',
 ];
 
 dev && allowList.push(
