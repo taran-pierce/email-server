@@ -107,6 +107,8 @@ app.use(bodyParser.urlencoded({extended: true}));
 
 // route for sending the email requests
 app.post('/send/mail', [cors(corsOptions)], (req, res, next) => {
+  console.log('hitting /send/mail');
+
   // set vars for incoming POST
   const reqBody = JSON.parse(Object.keys(req.body));
 
@@ -125,6 +127,11 @@ app.post('/send/mail', [cors(corsOptions)], (req, res, next) => {
 
 // start server
 app.listen(port, (err) => {
-  if (err) throw err
+  // if (err) throw err
+  if (err) {
+    console.log('err: ', err);
+
+    throw err
+  }
   console.log(`Listening on ${port}`);
 });
