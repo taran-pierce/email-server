@@ -87,6 +87,8 @@ async function main(name, email, message){
     },
     tls: {
       rejectUnauthorized: false,
+      requestCert: true,
+      agent: false,
     }
   });
 

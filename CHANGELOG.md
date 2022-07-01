@@ -1,5 +1,8 @@
 # Updates for Email Server
 
+## 2.0.13
+- Adjusting TLS options
+
 ## 2.0.12
 - Minor updates
 
