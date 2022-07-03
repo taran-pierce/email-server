@@ -30,6 +30,7 @@ var corsOptions = {
     if (allowList.indexOf(origin) !== -1) {
       callback(null, true)
     } else {
+      console.log('origin: ', origin);
       callback(new Error('Not allowed by CORS'))
     }
   },
@@ -109,14 +110,17 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.post('/send/mail', [cors(corsOptions)], (req, res, next) => {
   console.log('hitting /send/mail');
 
+  console.log('req.body: ', req.body);
+
   // set vars for incoming POST
-  const reqBody = JSON.parse(Object.keys(req.body));
+  // const reqBody = JSON.parse(Object.keys(req.body));
 
   const {
     name,
     email,
     message,
-  } = reqBody;
+  // } = reqBody;
+  } = req.body;
 
   // use main to send email
   main(name, email, message).catch(console.error);
