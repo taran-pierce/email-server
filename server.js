@@ -70,7 +70,13 @@ const {
  * @param {string} email - Customer email
  * @param {string} message - Message to be emailed from the customer
  */
-async function main(name, email, message){
+async function main(name, email, message) {
+  console.log('in MAIN');
+  console.log({
+    name,
+    email,
+    message,
+  });
   // set up message so we know who was viewing the form
   // this will be forwarded to another email
   let newMessage = `${name} has been viewing your website and has some questions.\n
@@ -128,6 +134,12 @@ app.post('/send/mail', [cors(corsOptions)], (req, res, next) => {
     email,
     message,
   } = reqBody;
+
+  console.log({
+    name,
+    email,
+    message,
+  });
 
   // use main to send email
   main(name, email, message).catch(console.error);
