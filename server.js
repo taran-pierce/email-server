@@ -27,6 +27,8 @@ dev && allowList.push(
 
 var corsOptions = {
   origin: function (origin, callback) {
+    console.log('origin: ', origin);
+
     if (allowList.indexOf(origin) !== -1) {
       callback(null, true)
     } else {
