@@ -124,7 +124,7 @@ app.post('/send/mail', [cors(corsOptions)], (req, res, next) => {
 
   console.log('req.body is a ', typeof req.body);
 
-  const reqBody = typeof req.body === 'string' ? JSON.parse(Object.keys(req.body)) : req.body;
+  const reqBody = typeof req.body === 'object' ? JSON.parse(Object.keys(req.body)) : req.body;
 
   // set vars for incoming POST
   // const reqBody = JSON.parse(Object.keys(req.body));
