@@ -116,6 +116,8 @@ app.post('/send/mail', [cors(corsOptions)], (req, res, next) => {
 
   console.log('req.body: ', req.body);
 
+  const reqBody = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+
   // set vars for incoming POST
   // const reqBody = JSON.parse(Object.keys(req.body));
 
@@ -123,8 +125,7 @@ app.post('/send/mail', [cors(corsOptions)], (req, res, next) => {
     name,
     email,
     message,
-  // } = reqBody;
-  } = req.body;
+  } = reqBody;
 
   // use main to send email
   main(name, email, message).catch(console.error);
