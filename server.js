@@ -11,6 +11,8 @@ const allowList = [
   'https://dev.caddolakebayoutours.com',
   'https://caddolakebayoutours.com/',
   'https://caddolakebayoutours.com',
+  'http://www.caddolakebayoutours.com:3000',
+  'http://www.caddolakebayoutours.com:3000/',
 ];
 
 // add to allowList
