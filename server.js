@@ -27,14 +27,12 @@ dev && allowList.push(
   'http://localhost:3000/',
 );
 
+// set up CORS options
 var corsOptions = {
   origin: function (origin, callback) {
-    console.log('origin: ', origin);
-
     if (allowList.indexOf(origin) !== -1) {
       callback(null, true)
     } else {
-      console.log('origin: ', origin);
       callback(new Error('Not allowed by CORS'))
     }
   },
@@ -71,12 +69,6 @@ const {
  * @param {string} message - Message to be emailed from the customer
  */
 async function main(name, email, message) {
-  console.log('in MAIN');
-  console.log({
-    name,
-    email,
-    message,
-  });
   // set up message so we know who was viewing the form
   // this will be forwarded to another email
   let newMessage = `${name} has been viewing your website and has some questions.\n
@@ -118,28 +110,17 @@ app.use(bodyParser.urlencoded({extended: true}));
 
 // route for sending the email requests
 app.post('/send/mail', [cors(corsOptions)], (req, res, next) => {
-  console.log('hitting /send/mail');
-
-  console.log('req.body: ', req.body);
-
-  console.log('req.body is a ', typeof req.body);
-
   const reqBody = typeof req.body === 'object' ? JSON.parse(Object.keys(req.body)) : req.body;
 
   // set vars for incoming POST
-  // const reqBody = JSON.parse(Object.keys(req.body));
-
   const {
     name,
     email,
     message,
   } = reqBody;
 
-  console.log({
-    name,
-    email,
-    message,
-  });
+  console.log('Preparing to send email...');
+  console.log(`${name} (${email})`);
 
   // use main to send email
   main(name, email, message).catch(console.error);

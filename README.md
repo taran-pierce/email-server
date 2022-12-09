@@ -12,10 +12,11 @@ Simple email server for use as a contact form.
 ## Deploy
 Hosted on Heroku. More instructions to come on how to publish to production.
 - Merges to master will automatically build and deploy to production
-  - https://email-server-v2.herokuapp.com/
+  - https://caddo-email-server.herokuapp.com/
 
 ### Dependencies
 * express - https://www.npmjs.com/package/express
 * nodemailer - https://www.npmjs.com/package/nodemailer
 * dotenv - https://www.npmjs.com/package/dotenv
 * body-parser - https://www.npmjs.com/package/body-parser
+* cors - https://www.npmjs.com/package/cors
