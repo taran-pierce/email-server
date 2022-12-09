@@ -1,5 +1,9 @@
 # Updates for Email Server
 
+## 2.1.0
+- Clean up comments
+- Update changelog
+
 ## 2.0.15
 - version up to force build 
 
