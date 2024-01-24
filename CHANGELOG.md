@@ -1,8 +1,11 @@
 # Updates for Email Server
 
+## 2.1.1
+- update packages and chanagelog
+
 ## 2.1.0
-- Clean up comments
-- Update changelog
+- clean up comments
+- update changelog
 
 ## 2.0.15
 - version up to force build 
