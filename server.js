@@ -4,6 +4,7 @@ dotenv.config();
 
 const dev = process.env.NODE_ENV !== 'production';
 const cors = require('cors');
+
 const allowList = [
   'https://www.caddolakebayoutours.com',
   'https://www.caddolakebayoutours.com/',
@@ -153,10 +154,7 @@ app.post('/send/mail', [cors(corsOptions)], (req, res, next) => {
 
     if (isSuccess) {
       console.log(`Response was: ${statusCode}`);
-      console.log({
-        response,
-        mailData,
-      });
+
       // just going to send Express a 200 though
       res.status(200).send('success')
     }

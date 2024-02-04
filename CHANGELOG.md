@@ -1,5 +1,8 @@
 # Updates for Email Server
 
+## 2.1.4
+- remove logs
+
 ## 2.1.3
 - adding logging and updating heroku settings
 
