@@ -25,6 +25,8 @@ dev && allowList.push(
   'localhost/',
   'http://localhost:3000',
   'http://localhost:3000/',
+  'http://localhost:3001',
+  'http://localhost:3001/',
 );
 
 // set up CORS options
@@ -69,6 +71,9 @@ const {
  * @param {string} message - Message to be emailed from the customer
  */
 async function main(name, email, message) {
+  if (!name || !email || !message) {
+    throw new Error('Info is missing!');
+  }
   // set up message so we know who was viewing the form
   // this will be forwarded to another email
   let newMessage = `${name} has been viewing your website and has some questions.\n
@@ -103,6 +108,8 @@ async function main(name, email, message) {
     text: newMessage, // plain text body
     messageId: `${name}`,
   });
+
+  return info;
 } 
 
 // data coming in from a form POST so parse it
@@ -123,19 +130,51 @@ app.post('/send/mail', [cors(corsOptions)], (req, res, next) => {
   console.log(`${name} (${email})`);
 
   // use main to send email
-  main(name, email, message).catch(console.error);
+  const sendMail = async () => {
+    const mailData = await main(name, email, message).catch((error) => {
+      console.error;
 
-  // send success response
-  res.send('success');
+      console.log(`There was an error: ${error} `);
+
+      res.status(500).send('Error sending email')
+    });
+
+    if (!mailData) {
+      console.log('Stopping because there was no mailData');
+      return;
+    }
+
+    // get info to check status of the result
+    const { response } = mailData;
+    const [statusCode] = response.split(' ');
+
+    // not sure the entire range Express returns so looking for any 200-299
+    const isSuccess = response && /\b(2[0-9]{2})\b/.test(statusCode);
+
+    if (isSuccess) {
+      console.log(`Response was: ${statusCode}`);
+      // just going to send Express a 200 though
+      res.status(200).send('success')
+    }
+
+    if (!isSuccess) {
+      console.log(`There was an issue: ${statusCode}`);
+      res.status(Number(statusCode)).send('error');
+    }
+
+    return mailData;
+  };
+
+  sendMail();
 })
 
 // start server
 app.listen(port, (err) => {
-  // if (err) throw err
   if (err) {
     console.log('err: ', err);
 
     throw err
   }
+
   console.log(`Listening on ${port}`);
 });

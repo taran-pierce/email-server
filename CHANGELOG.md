@@ -1,5 +1,9 @@
 # Updates for Email Server
 
+## 2.1.2
+- update packages and chanagelog
+- add new allowList for dev mode
+
 ## 2.1.1
 - update packages and chanagelog
 
