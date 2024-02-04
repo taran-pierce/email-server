@@ -1,5 +1,8 @@
 # Updates for Email Server
 
+## 2.1.3
+- adding logging and updating heroku settings
+
 ## 2.1.2
 - update packages and chanagelog
 - add new allowList for dev mode
