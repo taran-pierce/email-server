@@ -2,6 +2,7 @@
 
 ## 2.1.5
 - update readme
+- working on heroku auto deployment
 
 ## 2.1.4
 - remove logs
