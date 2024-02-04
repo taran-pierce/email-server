@@ -154,6 +154,7 @@ app.post('/send/mail', [cors(corsOptions)], (req, res, next) => {
 
     if (isSuccess) {
       console.log(`Response was: ${statusCode}`);
+      console.log(`email from: ${email}`);
 
       // just going to send Express a 200 though
       res.status(200).send('success')
