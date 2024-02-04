@@ -1,5 +1,8 @@
 # Updates for Email Server
 
+## 2.1.5
+- update readme
+
 ## 2.1.4
 - remove logs
 
