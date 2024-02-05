@@ -1,5 +1,16 @@
 # Updates for Email Server
 
+## 2.1.6
+- adding some logging
+- setting up custom dns
+
+## 2.1.5
+- update readme
+- working on heroku auto deployment
+
+## 2.1.4
+- remove logs
+
 ## 2.1.3
 - adding logging and updating heroku settings
 
