@@ -1,5 +1,8 @@
 # Updates for Email Server
 
+## 2.2.0
+- Adding in Azure custom domain email service in addition to current
+
 ## 2.1.6
 - adding some logging
 - setting up custom dns
