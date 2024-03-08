@@ -2,43 +2,24 @@
 const dotenv = require('dotenv');
 dotenv.config();
 
+const { EmailClient } = require("@azure/communication-email");
+
+const connectionString = process.env.CONNECTION_STRING;
+const client = new EmailClient(connectionString);
+
 const dev = process.env.NODE_ENV !== 'production';
 const cors = require('cors');
 
-const allowList = [
-  'https://www.caddolakebayoutours.com',
-  'https://www.caddolakebayoutours.com/',
-  'https://dev.caddolakebayoutours.com/',
-  'https://dev.caddolakebayoutours.com',
-  'https://caddolakebayoutours.com/',
-  'https://caddolakebayoutours.com',
-  'http://www.caddolakebayoutours.com:3000',
-  'http://www.caddolakebayoutours.com:3000/',
-];
+const allowList = process.env.ALLOW_LIST.split(',');
 
 // add to allowList
-dev && allowList.push(
-  'http://127.0.0.1/',
-  'http://127.0.0.1',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:3000/',
-  'localhost',
-  'localhost/',
-  'http://localhost:3000',
-  'http://localhost:3000/',
-  'http://localhost:3001',
-  'http://localhost:3001/',
-);
+if (dev) {
+  allowList.concat(process.env.DEV_ALLOW_LIST.split(','));
+}
 
 // set up CORS options
 var corsOptions = {
-  origin: function (origin, callback) {
-    if (allowList.indexOf(origin) !== -1) {
-      callback(null, true)
-    } else {
-      callback(new Error('Not allowed by CORS'))
-    }
-  },
+  origin: [allowList],
   methods: 'POST',
   allowedHeaders: [
     'Accept',
@@ -55,7 +36,7 @@ const bodyParser = require('body-parser');
 const app = express();
 
 // set up nodemailer
-const nodemailer = require("nodemailer");
+const nodemailer = require('nodemailer');
 
 // get required variables
 const {
@@ -105,10 +86,24 @@ async function main(name, email, message) {
   let info = await transporter.sendMail({
     from: `Info <${supportEmail}>`,
     to: `Info <${supportEmail}>`, // list of receivers
-    subject: "Website Contact Form", // Subject line
+    subject: 'Website Contact Form', // Subject line
     text: newMessage, // plain text body
     messageId: `${name}`,
   });
+
+  const emailMessage = {
+    senderAddress: process.env.AZURE_EMAIL,
+    content: {
+        subject: 'Website Contact Form',
+        plainText: newMessage,
+    },
+    recipients: {
+        to: [{ address: email }],
+    },
+  };
+
+  const poller = await client.beginSend(emailMessage);
+  const result = await poller.pollUntilDone();
 
   return info;
 } 
@@ -118,7 +113,14 @@ app.use(bodyParser.urlencoded({extended: true}));
 
 // route for sending the email requests
 app.post('/send/mail', [cors(corsOptions)], (req, res, next) => {
-  const reqBody = typeof req.body === 'object' ? JSON.parse(Object.keys(req.body)) : req.body;
+  let reqBody = req.body;
+
+  // TODO something aint right
+  // when coming from the site verses command line the data structure is off
+  // form possibly needs to submit differently, seems like jumping through extra hoops here
+  if (!req?.body?.name) {
+    reqBody = JSON.parse(Object.keys(req.body));
+  }
 
   // set vars for incoming POST
   const {
@@ -157,7 +159,7 @@ app.post('/send/mail', [cors(corsOptions)], (req, res, next) => {
       console.log(`email from: ${email}`);
 
       // just going to send Express a 200 though
-      res.status(200).send('success')
+      res.status(200).send({ message: 'success' })
     }
 
     if (!isSuccess) {
