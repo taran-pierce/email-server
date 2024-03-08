@@ -113,7 +113,14 @@ app.use(bodyParser.urlencoded({extended: true}));
 
 // route for sending the email requests
 app.post('/send/mail', [cors(corsOptions)], (req, res, next) => {
-  const reqBody = req.body;
+  let reqBody = req.body;
+
+  // TODO something aint right
+  // when coming from the site verses command line the data structure is off
+  // form possibly needs to submit differently, seems like jumping through extra hoops here
+  if (!req?.body?.name) {
+    reqBody = JSON.parse(Object.keys(req.body));
+  }
 
   // set vars for incoming POST
   const {
