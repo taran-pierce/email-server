@@ -38,13 +38,6 @@ const app = express();
 // set up nodemailer
 const nodemailer = require('nodemailer');
 
-// get required variables
-const {
-  email: supportEmail,
-  host,
-  creds,
-} = process.env;
-
 /**
  * Use nodemailer to send an email with return information
  * @async
@@ -56,6 +49,8 @@ async function main(name, email, message) {
   if (!name || !email || !message) {
     throw new Error('Info is missing!');
   }
+  
+  // Message to site owner
   // set up message so we know who was viewing the form
   // this will be forwarded to another email
   let newMessage = `${name} has been viewing your website and has some questions.\n
@@ -65,47 +60,49 @@ async function main(name, email, message) {
   ${message}
   `;
 
-  // create transporter
-  let transporter = nodemailer.createTransport({
-    host: host,
-    service: 'smtp',
-    port: 465,
-    secure: true,
-    auth: {
-      user: supportEmail,
-      pass: creds,
-    },
-    tls: {
-      rejectUnauthorized: false,
-      // requestCert: true,
-      // agent: false,
-    }
-  });
-
-  // sending email using caddo email account
-  let info = await transporter.sendMail({
-    from: `Info <${supportEmail}>`,
-    to: `Info <${supportEmail}>`, // list of receivers
-    subject: 'Website Contact Form', // Subject line
-    text: newMessage, // plain text body
-    messageId: `${name}`,
-  });
-
+  // Azure Email
   const emailMessage = {
     senderAddress: process.env.AZURE_EMAIL,
     content: {
-        subject: 'Website Contact Form',
-        plainText: newMessage,
+      subject: 'Website Contact Form',
+      plainText: newMessage,
     },
     recipients: {
-        to: [{ address: email }],
+      to: [
+        { address: process.env.SECONDARY_EMAIL }
+      ],
     },
   };
 
+  // Message for customer
+  const customerMessage = `We have received your email and we will get in contact with you as soon as we can.\n
+
+  Thank You, Caddo Lake Bayou Tours
+  `;
+
+  // Azure Email
+  const customerEmailMessage = {
+    senderAddress: process.env.AZURE_EMAIL,
+    content: {
+      subject: 'Website Contact Form',
+      plainText: customerMessage,
+    },
+    recipients: {
+      to: [
+        { address: email },
+      ],
+    },
+  };
+
+  // send email to site owner
   const poller = await client.beginSend(emailMessage);
   const result = await poller.pollUntilDone();
 
-  return info;
+  // send email to customer
+  const customerPoller = await client.beginSend(customerEmailMessage);
+  const customerResult = await customerPoller.pollUntilDone();
+
+  return result;
 } 
 
 // data coming in from a form POST so parse it
@@ -139,32 +136,23 @@ app.post('/send/mail', [cors(corsOptions)], (req, res, next) => {
 
       console.log(`There was an error: ${error} `);
 
-      res.status(500).send('Error sending email')
+      res.status(500).send({ message: 'Error sending email' });
     });
 
-    if (!mailData) {
-      console.log('Stopping because there was no mailData');
-      return;
-    }
+    console.log({
+      mailData,
+    });
 
-    // get info to check status of the result
-    const { response } = mailData;
-    const [statusCode] = response.split(' ');
-
-    // not sure the entire range Express returns so looking for any 200-299
-    const isSuccess = response && /\b(2[0-9]{2})\b/.test(statusCode);
-
-    if (isSuccess) {
-      console.log(`Response was: ${statusCode}`);
+    if (mailData.status === 'Succeeded') {
+      console.log(`Response was: ${mailData.status}`);
       console.log(`email from: ${email}`);
 
-      // just going to send Express a 200 though
       res.status(200).send({ message: 'success' })
     }
 
-    if (!isSuccess) {
-      console.log(`There was an issue: ${statusCode}`);
-      res.status(Number(statusCode)).send('error');
+    if (mailData.error) {
+      console.log(`There was an issue: ${mailData.status}`);
+      res.status(500).send({message: 'error' });
     }
 
     return mailData;
