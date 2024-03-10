@@ -1,5 +1,8 @@
 # Updates for Email Server
 
+## 3.0.0
+- Start only using Azure email service
+
 ## 2.2.0
 - Adding in Azure custom domain email service in addition to current
 
