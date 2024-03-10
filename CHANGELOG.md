@@ -1,5 +1,8 @@
 # Updates for Email Server
 
+## 3.0.2
+- Better error states
+
 ## 3.0.1
 - Adding some logging and additional checks in a couple spots
 
