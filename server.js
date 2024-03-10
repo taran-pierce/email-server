@@ -128,6 +128,9 @@ app.post('/send/mail', [cors(corsOptions)], (req, res, next) => {
 
   console.log('Preparing to send email...');
   console.log(`${name} (${email})`);
+  console.log({
+    req,
+  });
 
   // use main to send email
   const sendMail = async () => {
@@ -143,14 +146,14 @@ app.post('/send/mail', [cors(corsOptions)], (req, res, next) => {
       mailData,
     });
 
-    if (mailData.status === 'Succeeded') {
+    if (mailData?.status === 'Succeeded') {
       console.log(`Response was: ${mailData.status}`);
       console.log(`email from: ${email}`);
 
       res.status(200).send({ message: 'success' })
     }
 
-    if (mailData.error) {
+    if (mailData?.error) {
       console.log(`There was an issue: ${mailData.status}`);
       res.status(500).send({message: 'error' });
     }

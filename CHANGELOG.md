@@ -1,5 +1,8 @@
 # Updates for Email Server
 
+## 3.0.1
+- Adding some logging and additional checks in a couple spots
+
 ## 3.0.0
 - Start only using Azure email service
 
