@@ -52,6 +52,20 @@ async function main(name, email, message) {
   ${message}
   `;
 
+  // main site owner contact email
+  const siteOwnerConacts = [
+    {
+      address: process.env.SECONDARY_EMAIL,
+    }
+  ];
+
+  // add extra monitoring email if it is set
+  if (process.env?.EXTRA_CONTACT_EMAIL) {
+    siteOwnerConacts.push(
+      { address: process.env.EXTRA_CONTACT_EMAIL }
+    );
+  }
+
   // Azure Email
   const emailMessage = {
     senderAddress: process.env.AZURE_EMAIL,
@@ -60,9 +74,7 @@ async function main(name, email, message) {
       plainText: newMessage,
     },
     recipients: {
-      to: [
-        { address: process.env.SECONDARY_EMAIL }
-      ],
+      to: siteOwnerConacts,
     },
   };
 
