@@ -1,5 +1,8 @@
 # Updates for Email Server
 
+## 3.0.3
+- Adding extra contact email for monitoring
+
 ## 3.0.2
 - Better error states
 
