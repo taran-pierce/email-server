@@ -1,5 +1,8 @@
 # Updates for Email Server
 
+## 3.0.5
+- Security update 
+
 ## 3.0.4
 - updated packages 
 
