@@ -14,7 +14,7 @@
         "cors": "^2.8.5",
         "dotenv": "16.0.1",
         "express": "^4.18.2",
-        "nodemailer": "^6.7.5"
+        "nodemailer": "^7.0.7"
       }
     },
     "node_modules/@azure/abort-controller": {
@@ -870,9 +870,10 @@
       }
     },
     "node_modules/nodemailer": {
-      "version": "6.9.9",
-      "resolved": "https://registry.npmjs.org/nodemailer/-/nodemailer-6.9.9.tgz",
-      "integrity": "sha512-dexTll8zqQoVJEZPwQAKzxxtFn0qTnjdQTchoU6Re9BUUGBJiOy3YMn/0ShTW6J5M0dfQ1NeDeRTTl4oIWgQMA==",
+      "version": "7.0.7",
+      "resolved": "https://registry.npmjs.org/nodemailer/-/nodemailer-7.0.7.tgz",
+      "integrity": "sha512-jGOaRznodf62TVzdyhKt/f1Q/c3kYynk8629sgJHpRzGZj01ezbgMMWJSAjHADcwTKxco3B68/R+KHJY2T5BaA==",
+      "license": "MIT-0",
       "engines": {
         "node": ">=6.0.0"
       }
