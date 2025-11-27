@@ -2,6 +2,21 @@
 const dotenv = require('dotenv');
 dotenv.config();
 
+["CONNECTION_STRING", "ALLOW_LIST", "DEV_ALLOW_LIST", "AZURE_EMAIL", "SECONDARY_EMAIL"].forEach(key => {
+  if (!process.env[key]) {
+    console.error(`Missing required env var: ${key}`);
+    process.exit(1);
+  }
+});
+
+const rateLimit = require("express-rate-limit");
+
+const limiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  limit: 5, // Only 5 requests/min per IP
+  message: { code: 429, message: "Too many requests" }
+});
+
 const { EmailClient } = require("@azure/communication-email");
 
 const connectionString = process.env.CONNECTION_STRING;
@@ -11,11 +26,19 @@ const dev = process.env.NODE_ENV !== 'production';
 const cors = require('cors');
 
 // create allow list
-let allowList = [].concat(process.env.ALLOW_LIST.split(','), (dev ? process.env.DEV_ALLOW_LIST.split(',') : []));
+let allowList = [
+  ...process.env.ALLOW_LIST.split(","),
+  ...(dev ? process.env.DEV_ALLOW_LIST.split(",") : [])
+].map(o => o.trim()).filter(Boolean);
 
 // set up CORS options
 var corsOptions = {
-  origin: [allowList],
+  origin: function(origin, callback) {
+    if (!origin || allowList.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error("Not allowed by CORS"));
+  },
   methods: 'POST',
   allowedHeaders: [
     'Accept',
@@ -27,9 +50,24 @@ const port = process.env.PORT || 3000;
 
 // set up express
 const express = require('express');
-const bodyParser = require('body-parser');
 
 const app = express();
+
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
+app.use("/send/mail", limiter);
+
+async function sendEmail(message) {
+  try {
+    const poller = await client.beginSend(message);
+    const result = await poller.pollUntilDone();
+    return result;
+  } catch (err) {
+    console.log("Azure Email Error:", err);
+    throw err;
+  }
+}
 
 /**
  * @async
@@ -39,150 +77,165 @@ const app = express();
  */
 async function main(name, email, message) {
   if (!name || !email || !message) {
-    throw new Error('Info is missing!');
+    throw new Error("Missing required fields");
   }
-  
+
   // Message to site owner
-  // set up message so we know who was viewing the form
-  // this will be forwarded to another email
-  let newMessage = `${name} has been viewing your website and has some questions.\n
-  Email them back at their email address: ${email}\n\n\n
-  Message from ${name}:\n
-  ________________________________________\n
-  ${message}
+  let newMessage = `
+    ${name} has been viewing your website and has some questions.
+
+    Email: ${email}
+
+    Message:
+    ----------------------------------------
+${message}
   `;
 
-  // main site owner contact email
-  const siteOwnerConacts = [
-    {
-      address: process.env.SECONDARY_EMAIL,
-    }
+  const siteOwnerContacts = [
+    { address: process.env.SECONDARY_EMAIL }
   ];
 
-  // add extra monitoring email if it is set
   if (process.env?.EXTRA_CONTACT_EMAIL) {
-    siteOwnerConacts.push(
-      { address: process.env.EXTRA_CONTACT_EMAIL }
-    );
+    siteOwnerContacts.push({ address: process.env.EXTRA_CONTACT_EMAIL });
   }
 
-  // Azure Email
   const emailMessage = {
     senderAddress: process.env.AZURE_EMAIL,
     content: {
-      subject: 'Website Contact Form',
+      subject: "Website Contact Form",
       plainText: newMessage,
     },
     recipients: {
-      to: siteOwnerConacts,
+      to: siteOwnerContacts,
     },
   };
 
-  // Message for customer
   const customerMessage = `We have received your email and we will get in contact with you as soon as we can.\n
-
   Thank You, Caddo Lake Bayou Tours
   `;
 
-  // Azure Email
   const customerEmailMessage = {
     senderAddress: process.env.AZURE_EMAIL,
     content: {
-      subject: 'Website Contact Form',
+      subject: "Website Contact Form",
       plainText: customerMessage,
     },
     recipients: {
-      to: [
-        { address: email },
-      ],
+      to: [{ address: email }],
     },
   };
 
-  // send email to site owner
-  const poller = await client.beginSend(emailMessage);
-  const result = await poller.pollUntilDone();
-
-  // send email to customer
-  const customerPoller = await client.beginSend(customerEmailMessage);
-  const customerResult = await customerPoller.pollUntilDone();
-
-  return {
-    result,
-    customerResult,
-  };
-} 
-
-// data coming in from a form POST so parse it
-app.use(bodyParser.urlencoded({extended: true}));
+  try {
+    const [result, customerResult] = await Promise.all([
+      sendEmail(emailMessage).catch(err => ({ status: "Failed", error: err })),
+      sendEmail(customerEmailMessage).catch(err => ({ status: "Failed", error: err }))
+    ]);
+    
+    return { result, customerResult };
+  } catch (error) {
+    console.log("Error in main():", error);
+    throw new Error("Email sending failed");
+  }
+}
 
 // route for sending the email requests
-app.post('/send/mail', [cors(corsOptions)], (req, res, next) => {
+app.post('/send/mail', [cors(corsOptions)], async (req, res) => {
   try {
     let reqBody = req.body;
 
-    // TODO something aint right
-    // when coming from the site verses command line the data structure is off
-    // form possibly needs to submit differently, seems like jumping through extra hoops here
-    if (!req?.body?.name) {
-      reqBody = JSON.parse(Object.keys(req.body));
+    if (Object.keys(req.body).length === 1) {
+      const maybeJson = Object.keys(req.body)[0];
+      if (maybeJson.startsWith("{")) {
+        try {
+          reqBody = JSON.parse(maybeJson);
+        } catch (err) {
+          return res.status(400).json({ code: 400, message: "Malformed JSON payload" });
+        }
+      }
     }
-  
-    // set vars for incoming POST
-    const {
-      name,
-      email,
-      message,
-    } = reqBody;
-  
-    console.log('Preparing to send email...');
-    console.log(`${name} (${email})`);
-  
-    // use main to send email
-    const sendMail = async () => {  
-      const mailData = await main(name, email, message).catch((error) => {
-        console.error;
-  
-        console.log(`There was an error: ${error} `);
-  
-        res.status(500).send({
-          code: 500,
-          message: 'Error sending email',
-        });
+
+    // Extract values
+    const { name, email, message } = reqBody;
+
+    const cleanName = name?.trim();
+    const cleanEmail = email?.trim().toLowerCase();
+    const cleanMessage = message?.trim();
+
+    // basic checks
+    if (!cleanName || !cleanEmail || !cleanMessage) {
+      return res.status(400).send({
+        code: 400,
+        message: "Missing required fields",
       });
-  
-      // logging for now for debugging purposes
-      console.log({
-        mailData,
+    }
+
+    if (cleanName.length > 100) {
+      return res.status(400).send({
+        code: 400,
+        message: "Name is too long",
       });
-  
-      if (mailData?.customerResult?.status === 'Succeeded') {
-        console.log(`Response was: ${mailData.customerResult.status}`);
-        console.log(`email from: ${email}`);
-  
-        res.status(201).send({
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      return res.status(400).send({
+        code: 400,
+        message: "Invalid email format",
+      });
+    }
+
+    if (cleanMessage.length > 5000) {
+      return res.status(400).send({
+        code: 400,
+        message: "Message is too long",
+      });
+    }
+
+    console.log("Preparing to send email...");
+    console.log(`${cleanName} (${cleanEmail})`);
+
+    try {
+      const mailData = await main(cleanName, cleanEmail, cleanMessage);
+
+      if (mailData?.customerResult?.status === "Succeeded") {
+        return res.status(201).send({
           code: 201,
           message: mailData.customerResult.status,
         });
       }
-  
-      if (mailData?.customerResult?.error) {
-        console.log(`There was an issue: ${mailData.customerResult.status}`);
-        res.status(500).send({
-          code: 500,
-          message: mailData.customerResult.status,
-        });
-      }
-  
-      return mailData;
-    };
-  
-    sendMail();
+
+      return res.status(500).send({
+        code: 500,
+        message: "Email sending failed",
+      });
+
+    } catch (sendErr) {
+      console.log("Send error:", sendErr);
+      return res.status(500).send({
+        code: 500,
+        message: "Error sending email",
+      });
+    }
+
   } catch (error) {
-    console.log({
-      error,
+    console.log("Route error:", error);
+    return res.status(500).send({
+      code: 500,
+      message: "Server error",
     });
   }
-})
+});
+
+// --- CORS ERROR HANDLER ---
+app.use((err, req, res, next) => {
+  if (err instanceof Error && err.message === "Not allowed by CORS") {
+    return res.status(403).json({
+      code: 403,
+      message: "CORS blocked"
+    });
+  }
+  next(err);
+});
 
 // start server
 app.listen(port, (err) => {
