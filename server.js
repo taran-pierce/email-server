@@ -78,6 +78,8 @@ async function sendEmail(message) {
  * @param {string} message - Message to be emailed from the customer
  */
 async function main(name, email, message) {
+  const { sendEmail } = require('./server'); // <-- use the exported version
+
   if (!name || !email || !message) {
     throw new Error("Missing required fields");
   }
@@ -193,9 +195,6 @@ app.post('/send/mail', [cors(corsOptions)], async (req, res) => {
       });
     }
 
-    console.log("Preparing to send email...");
-    console.log(`${cleanName} (${cleanEmail})`);
-
     try {
       const mailData = await main(cleanName, cleanEmail, cleanMessage);
 
@@ -239,13 +238,18 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-// start server
-app.listen(port, (err) => {
-  if (err) {
-    console.log('err: ', err);
+// Only start server if running directly, not when imported for tests
+if (require.main === module) {
+  // start server
+  app.listen(port, (err) => {
+    if (err) {
+      console.log('err: ', err);
 
-    throw err
-  }
+      throw err
+    }
 
-  console.log(`Listening on ${port}`);
-});
+    console.log(`Listening on ${port}`);
+  });
+}
+
+module.exports = { main, sendEmail, app };
