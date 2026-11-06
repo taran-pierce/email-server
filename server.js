@@ -10,6 +10,7 @@ dotenv.config();
 });
 
 const rateLimit = require("express-rate-limit");
+const util = require("util");
 
 const limiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
@@ -62,11 +63,24 @@ app.use("/send/mail", limiter);
 
 async function sendEmail(message) {
   try {
+    console.log("ACS send: before beginSend");
     const poller = await client.beginSend(message);
+    console.log("ACS send: after beginSend returned poller", {
+      pollerExists: !!poller,
+      pollerType: poller?.constructor?.name
+    });
+
     const result = await poller.pollUntilDone();
+    console.log("ACS send: after pollUntilDone", {
+      result: util.inspect(result, { depth: null, colors: false })
+    });
     return result;
   } catch (err) {
-    console.log("Azure Email Error:", err);
+    console.error("ACS send: catch block - full error details:", util.inspect(err, {
+      showHidden: true,
+      depth: null,
+      colors: false
+    }));
     throw err;
   }
 }
