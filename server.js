@@ -12,7 +12,14 @@ dotenv.config();
 const rateLimit = require("express-rate-limit");
 const util = require("util");
 
-const emailTimeoutMs = Number(process.env.ACS_SEND_TIMEOUT_MS || 30000);
+const configuredEmailTimeoutMs = process.env.ACS_SEND_TIMEOUT_MS;
+const emailTimeoutMs = configuredEmailTimeoutMs === undefined
+  ? 30000
+  : Number(configuredEmailTimeoutMs);
+
+if (!Number.isSafeInteger(emailTimeoutMs) || emailTimeoutMs <= 0) {
+  throw new Error("ACS_SEND_TIMEOUT_MS must be a positive integer number of milliseconds");
+}
 
 const limiter = rateLimit({
   windowMs: 60 * 1000,
@@ -53,27 +60,21 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use("/send/mail", limiter);
 
-function withTimeout(promise, timeoutMs, timeoutMessage) {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new Error(timeoutMessage));
-    }, timeoutMs);
-
-    promise.then(
-      value => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      error => {
-        clearTimeout(timer);
-        reject(error);
-      }
-    );
-  });
-}
-
 async function sendEmail(message, label = 'email') {
   const startedAt = Date.now();
+  const controller = new AbortController();
+  let timedOut = false;
+
+  const timeoutPromise = new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+      reject(new Error(`ACS send timed out after ${emailTimeoutMs}ms for ${label}`));
+    }, emailTimeoutMs);
+
+    // Attach timer cleanup to the operation's completion below.
+    controller.signal.addEventListener('abort', () => clearTimeout(timer), { once: true });
+  });
 
   console.log(`[ACS][${label}] before beginSend`, {
     senderAddress: message?.senderAddress,
@@ -83,32 +84,31 @@ async function sendEmail(message, label = 'email') {
   });
 
   try {
-    const poller = await withTimeout(
-      client.beginSend(message),
-      emailTimeoutMs,
-      `ACS beginSend timed out after ${emailTimeoutMs}ms for ${label}`
-    );
+    const operation = (async () => {
+      const poller = await client.beginSend(message, { abortSignal: controller.signal });
 
-    console.log(`[ACS][${label}] after beginSend returned poller`, {
-      pollerExists: !!poller,
-      pollerType: poller?.constructor?.name,
-      elapsedMs: Date.now() - startedAt
-    });
+      console.log(`[ACS][${label}] after beginSend returned poller`, {
+        pollerExists: !!poller,
+        pollerType: poller?.constructor?.name,
+        elapsedMs: Date.now() - startedAt
+      });
 
-    const result = await withTimeout(
-      poller.pollUntilDone(),
-      emailTimeoutMs,
-      `ACS pollUntilDone timed out after ${emailTimeoutMs}ms for ${label}`
-    );
+      const result = await poller.pollUntilDone({ abortSignal: controller.signal });
 
-    console.log(`[ACS][${label}] after pollUntilDone`, {
-      status: result?.status,
-      id: result?.id,
-      elapsedMs: Date.now() - startedAt
-    });
+      console.log(`[ACS][${label}] after pollUntilDone`, {
+        status: result?.status,
+        id: result?.id,
+        elapsedMs: Date.now() - startedAt
+      });
 
-    return result;
+      return result;
+    })();
+
+    return await Promise.race([operation, timeoutPromise]);
   } catch (err) {
+    if (timedOut) {
+      err.message = `ACS send timed out after ${emailTimeoutMs}ms for ${label}; the client request/polling was aborted, but Azure may still process a send already accepted`;
+    }
     console.error(`[ACS][${label}] catch block - full error details:`, util.inspect(err, {
       showHidden: true,
       depth: null,
