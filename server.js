@@ -12,28 +12,27 @@ dotenv.config();
 const rateLimit = require("express-rate-limit");
 const util = require("util");
 
+const emailTimeoutMs = Number(process.env.ACS_SEND_TIMEOUT_MS || 30000);
+
 const limiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  limit: 10, // Only 5 requests/min per IP
+  windowMs: 60 * 1000,
+  limit: 10,
   message: { code: 429, message: "Too many requests" }
 });
 
 const { EmailClient } = require("@azure/communication-email");
-
 const connectionString = process.env.CONNECTION_STRING;
 const client = new EmailClient(connectionString);
 
 const dev = process.env.NODE_ENV !== 'production';
 const cors = require('cors');
 
-// create allow list
-let allowList = [
+const allowList = [
   ...process.env.ALLOW_LIST.split(","),
   ...(dev ? process.env.DEV_ALLOW_LIST.split(",") : [])
 ].map(o => o.trim()).filter(Boolean);
 
-// set up CORS options
-var corsOptions = {
+const corsOptions = {
   origin: function(origin, callback) {
     if (!origin || allowList.includes(origin)) {
       return callback(null, true);
@@ -41,42 +40,76 @@ var corsOptions = {
     return callback(new Error("Not allowed by CORS"));
   },
   methods: 'POST',
-  allowedHeaders: [
-    'Accept',
-    'Content-Type',
-  ]
+  allowedHeaders: ['Accept', 'Content-Type']
 };
 
 const port = process.env.PORT || 3000;
 
-// set up express
 const express = require('express');
-
 const app = express();
 
 app.set('trust proxy', 1);
-
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-
 app.use("/send/mail", limiter);
 
-async function sendEmail(message) {
+function withTimeout(promise, timeoutMs, timeoutMessage) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(timeoutMessage));
+    }, timeoutMs);
+
+    promise.then(
+      value => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      error => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
+
+async function sendEmail(message, label = 'email') {
+  const startedAt = Date.now();
+
+  console.log(`[ACS][${label}] before beginSend`, {
+    senderAddress: message?.senderAddress,
+    subject: message?.content?.subject,
+    recipientCount: message?.recipients?.to?.length || 0,
+    timeoutMs: emailTimeoutMs
+  });
+
   try {
-    console.log("ACS send: before beginSend");
-    const poller = await client.beginSend(message);
-    console.log("ACS send: after beginSend returned poller", {
+    const poller = await withTimeout(
+      client.beginSend(message),
+      emailTimeoutMs,
+      `ACS beginSend timed out after ${emailTimeoutMs}ms for ${label}`
+    );
+
+    console.log(`[ACS][${label}] after beginSend returned poller`, {
       pollerExists: !!poller,
-      pollerType: poller?.constructor?.name
+      pollerType: poller?.constructor?.name,
+      elapsedMs: Date.now() - startedAt
     });
 
-    const result = await poller.pollUntilDone();
-    console.log("ACS send: after pollUntilDone", {
-      result: util.inspect(result, { depth: null, colors: false })
+    const result = await withTimeout(
+      poller.pollUntilDone(),
+      emailTimeoutMs,
+      `ACS pollUntilDone timed out after ${emailTimeoutMs}ms for ${label}`
+    );
+
+    console.log(`[ACS][${label}] after pollUntilDone`, {
+      status: result?.status,
+      id: result?.id,
+      elapsedMs: Date.now() - startedAt
     });
+
     return result;
   } catch (err) {
-    console.error("ACS send: catch block - full error details:", util.inspect(err, {
+    console.error(`[ACS][${label}] catch block - full error details:`, util.inspect(err, {
       showHidden: true,
       depth: null,
       colors: false
@@ -96,7 +129,6 @@ async function main(name, email, message) {
     throw new Error("Missing required fields");
   }
 
-  // Message to site owner
   let newMessage = `
     ${name} has been viewing your website and has some questions.
 
@@ -107,9 +139,7 @@ async function main(name, email, message) {
 ${message}
   `;
 
-  const siteOwnerContacts = [
-    { address: process.env.SECONDARY_EMAIL }
-  ];
+  const siteOwnerContacts = [{ address: process.env.SECONDARY_EMAIL }];
 
   if (process.env?.EXTRA_CONTACT_EMAIL) {
     siteOwnerContacts.push({ address: process.env.EXTRA_CONTACT_EMAIL });
@@ -142,26 +172,25 @@ ${message}
   };
 
   try {
-    const [result, customerResult] = await Promise.all([
-      sendEmail(emailMessage).catch(err => ({ status: "Failed", error: err })),
-      sendEmail(customerEmailMessage).catch(err => ({ status: "Failed", error: err }))
+    const [siteOwnerResult, customerResult] = await Promise.all([
+      sendEmail(emailMessage, 'site-owner').catch(err => ({ status: 'Failed', error: err })),
+      sendEmail(customerEmailMessage, 'customer').catch(err => ({ status: 'Failed', error: err }))
     ]);
-    
-    return { result, customerResult };
+
+    return { result: siteOwnerResult, customerResult };
   } catch (error) {
-    console.log("Error in main():", error);
+    console.error("Error in main():", util.inspect(error, { depth: null, colors: false, showHidden: true }));
     throw new Error("Email sending failed");
   }
 }
 
-// route for sending the email requests
 app.post('/send/mail', [cors(corsOptions)], async (req, res) => {
   try {
-    let reqBody = req.body;
+    let reqBody = req.body && typeof req.body === 'object' ? req.body : {};
 
-    if (Object.keys(req.body).length === 1) {
+    if (req.body && typeof req.body === 'object' && Object.keys(req.body).length === 1) {
       const maybeJson = Object.keys(req.body)[0];
-      if (maybeJson.startsWith("{")) {
+      if (typeof maybeJson === 'string' && maybeJson.startsWith("{")) {
         try {
           reqBody = JSON.parse(maybeJson);
         } catch (err) {
@@ -170,41 +199,26 @@ app.post('/send/mail', [cors(corsOptions)], async (req, res) => {
       }
     }
 
-    // Extract values
     const { name, email, message } = reqBody;
-
     const cleanName = name?.trim();
     const cleanEmail = email?.trim().toLowerCase();
     const cleanMessage = message?.trim();
 
-    // basic checks
     if (!cleanName || !cleanEmail || !cleanMessage) {
-      return res.status(400).send({
-        code: 400,
-        message: "Missing required fields",
-      });
+      return res.status(400).send({ code: 400, message: "Missing required fields" });
     }
 
     if (cleanName.length > 100) {
-      return res.status(400).send({
-        code: 400,
-        message: "Name is too long",
-      });
+      return res.status(400).send({ code: 400, message: "Name is too long" });
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(cleanEmail)) {
-      return res.status(400).send({
-        code: 400,
-        message: "Invalid email format",
-      });
+      return res.status(400).send({ code: 400, message: "Invalid email format" });
     }
 
     if (cleanMessage.length > 5000) {
-      return res.status(400).send({
-        code: 400,
-        message: "Message is too long",
-      });
+      return res.status(400).send({ code: 400, message: "Message is too long" });
     }
 
     try {
@@ -217,47 +231,31 @@ app.post('/send/mail', [cors(corsOptions)], async (req, res) => {
         });
       }
 
-      return res.status(500).send({
-        code: 500,
-        message: "Email sending failed",
-      });
-
+      return res.status(500).send({ code: 500, message: "Email sending failed" });
     } catch (sendErr) {
-      console.log("Send error:", sendErr);
-      return res.status(500).send({
-        code: 500,
-        message: "Error sending email",
-      });
+      console.error("Send error:", util.inspect(sendErr, { depth: null, colors: false, showHidden: true }));
+      return res.status(500).send({ code: 500, message: "Error sending email" });
     }
-
   } catch (error) {
-    console.log("Route error:", error);
-    return res.status(500).send({
-      code: 500,
-      message: "Server error",
-    });
+    console.error("Route error:", util.inspect(error, { depth: null, colors: false, showHidden: true }));
+    return res.status(500).send({ code: 500, message: "Server error" });
   }
 });
 
-// --- CORS ERROR HANDLER ---
 app.use((err, req, res, next) => {
   if (err instanceof Error && err.message === "Not allowed by CORS") {
-    return res.status(403).json({
-      code: 403,
-      message: "CORS blocked"
-    });
+    return res.status(403).json({ code: 403, message: "CORS blocked" });
   }
-  next(err);
+
+  console.error("Unhandled app error:", util.inspect(err, { depth: null, colors: false, showHidden: true }));
+  return res.status(500).json({ code: 500, message: "Internal server error" });
 });
 
-// Only start server if running directly, not when imported for tests
 if (require.main === module) {
-  // start server
   app.listen(port, (err) => {
     if (err) {
-      console.log('err: ', err);
-
-      throw err
+      console.error('err: ', err);
+      throw err;
     }
 
     console.log(`Listening on ${port}`);
