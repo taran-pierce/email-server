@@ -92,8 +92,6 @@ async function sendEmail(message) {
  * @param {string} message - Message to be emailed from the customer
  */
 async function main(name, email, message) {
-  const { sendEmail } = require('./server'); // <-- use the exported version
-
   if (!name || !email || !message) {
     throw new Error("Missing required fields");
   }
